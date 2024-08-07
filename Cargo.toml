@@ -1,0 +1,16 @@
+[package]
+name = "redb_model"
+authors = ["Christopher Edward Dawn"]
+version = "0.1.0"
+edition = "2021"
+description = "Redb model derive macro and DTO type conversion"
+readme = "README.md"
+repository = "https://github.com/cedtwo/redb_model.git"
+license = "MIT OR Apache-2.0"
+keywords = ["redb", "model", "schema"]
+categories = ["rust_patterns"]
+
+[dependencies]
+_derive = { package = "redb_model_derive", version = "*", path="./redb_model_derive" }
+_trait = { package = "redb_model_trait", version = "*", path="./redb_model_trait" }
+redb = "2.1"

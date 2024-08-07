@@ -1,0 +1,19 @@
+[package]
+name = "redb_model_derive"
+authors = ["Christopher Edward Dawn"]
+version = "0.1.0"
+edition = "2021"
+description = "Redb model derive macro"
+license = "MIT OR Apache-2.0"
+
+[lib]
+proc_macro = true
+
+[dependencies]
+_trait = { package = "redb_model_trait", version = "*", path="../redb_model_trait" }
+
+proc-macro2 = "1.0.86"
+darling = "0.20.10"
+quote = "1.0.36"
+syn = "2.0.72"
+

@@ -1,0 +1,10 @@
+[package]
+name = "redb_model_trait"
+authors = ["Christopher Edward Dawn"]
+version = "0.1.0"
+edition = "2021"
+description = "Redb model trait"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+redb = "2.1"
