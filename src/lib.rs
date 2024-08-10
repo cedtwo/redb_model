@@ -52,11 +52,11 @@
 //!
 //! ### Type conversion
 //! The generated implementation of the [`Model`] trait provides methods for
-//! instantiating, borrowing and taking the key/value pairs from the model DTO.
-//! See the methods of the [`Model`] trait for available methods. By default,
-//! `#[derive(Model)]` will only generate an implementation of the `Model` trait.
-//! Decorating the struct with `#[model(impl_from)]` will implement `From<T>`,
-//! mapping `T` to the `from_values` and `from_guards` methods.
+//! instantiating, borrowing and taking the key/value pairs of the model DTO.
+//! See the [`Model`] trait for available methods. By default, `#[derive(Model)]`
+//! will only generate an implementation of the `Model` trait. Decorating the
+//! struct with `#[model(impl_from)]` will implement `From<T>`, mapping `T` to
+//! the `from_values(T)` method.
 //! ```
 //! # use crate::redb_model::Model;
 //! #
@@ -76,10 +76,43 @@
 //!
 //! let user: User = ((user_key, user_value)).into();
 //! ```
-//! ## Variable Ordering
+//! ## Implementation details
+//!
+//! The following are notes
+//!
+//! ### Unit type values
+//!
+//! The unit type `()` must be passed if no value is defined.
+//! ```
+//! # use redb::TableHandle;
+//! #
+//! # use crate::redb_model::Model;
+//! #
+//! #[derive(Model)]
+//! #[model(name = "outbound_edge")]
+//! struct Edge {
+//!     #[entry(position(key))]
+//!     source: [u8; 16],
+//!     #[entry(position(key))]
+//!     target: [u8; 16],
+//! }
+//! let k = ([0; 16], [1; 16]);
+//! let v = (); // `()` argument must be passed.
+//! let e = Edge::from_values((k, v));
+//! ```
+//!
+//! ### Variable Ordering
 //!
 //! All composite key/value variables are combined as a tuple in the order they
 //! are defined.
+//!
+//! ### The `Model` definition and `redb::TableDefinition`
+//!
+//! The `redb::TableDefinition` uses `'static` references of the variables types
+//! `Model`, with the exception of `String` which uses a `'static` string slice.
+//! This is to ensure that calling `as_values` returns references suitable for
+//! database calls.
+
 pub use _derive::Model;
 pub use _trait::Model;
 
@@ -87,7 +120,7 @@ pub use _trait::Model;
 mod tests {
 
     use crate::Model;
-    use redb::TableHandle;
+    use redb::{ReadableTable, TableHandle};
 
     #[test]
     fn test_table_name() {
@@ -137,6 +170,8 @@ mod tests {
         let v_0 = String::from("Test String");
         let entry = DistinctValueModel::from_values((k_0, v_0.clone()));
         let (k_1, v_1) = entry.into_values();
+
+        // redb::Value
 
         assert_eq!(k_0, k_1);
         assert_eq!(v_0, v_1);
