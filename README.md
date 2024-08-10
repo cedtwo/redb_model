@@ -12,6 +12,7 @@ types, or tuples of types.
 Key(s) and value(s) are specified by decorating table fields with
 `#[entry(position(...))]`, passing either `key` or `value` to the inner field.
 ```rust
+#
 #[derive(Model)]
 struct User {
     #[entry(position(key))]
@@ -32,6 +33,8 @@ let user = User::from_values((user_key, user_value));
 Table names default to the (case-sensitive) struct name. This can be overridden by decorating
 the struct with `#[model(name = "...")]` attribute.
 ```rust
+#
+#
 #[derive(Model)]
 #[model(name = "user_table")]
 struct User {
@@ -71,7 +74,7 @@ let user: User = ((user_key, user_value)).into();
 ```
 ## Implementation details
 
-The following are notes
+The following are general notes regardign implementation or usage.
 
 ### Unit type values
 
@@ -95,13 +98,14 @@ let e = Edge::from_values((k, v));
 ### Variable Ordering
 
 All composite key/value variables are combined as a tuple in the order they
-are defined.
+are defined. This is intended but can be changed if there is any reason
+to do so.
 
 ### The `Model` definition and `redb::TableDefinition`
 
-The `redb::TableDefinition` uses `'static` references of the variables types
-`Model`, with the exception of `String` which uses a `'static` string slice.
-This is to ensure that calling `as_values` returns references suitable for
-database calls.
+The `redb::TableDefinition` uses `'static` references of the types defined
+in the `Model`, with the exception of `String` which uses a `'static` string
+slice. This is to ensure that calling `as_values` returns references suitable
+for database calls.
 
 License: MIT OR Apache-2.0

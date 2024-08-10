@@ -78,7 +78,7 @@
 //! ```
 //! ## Implementation details
 //!
-//! The following are notes
+//! The following are general notes regardign implementation or usage.
 //!
 //! ### Unit type values
 //!
@@ -104,14 +104,15 @@
 //! ### Variable Ordering
 //!
 //! All composite key/value variables are combined as a tuple in the order they
-//! are defined.
+//! are defined. This is intended but can be changed if there is any reason
+//! to do so.
 //!
 //! ### The `Model` definition and `redb::TableDefinition`
 //!
-//! The `redb::TableDefinition` uses `'static` references of the variables types
-//! `Model`, with the exception of `String` which uses a `'static` string slice.
-//! This is to ensure that calling `as_values` returns references suitable for
-//! database calls.
+//! The `redb::TableDefinition` uses `'static` references of the types defined
+//! in the `Model`, with the exception of `String` which uses a `'static` string
+//! slice. This is to ensure that calling `as_values` returns references suitable
+//! for database calls.
 
 pub use _derive::Model;
 pub use _trait::Model;
@@ -120,7 +121,7 @@ pub use _trait::Model;
 mod tests {
 
     use crate::Model;
-    use redb::{ReadableTable, TableHandle};
+    use redb::TableHandle;
 
     #[test]
     fn test_table_name() {
@@ -170,8 +171,6 @@ mod tests {
         let v_0 = String::from("Test String");
         let entry = DistinctValueModel::from_values((k_0, v_0.clone()));
         let (k_1, v_1) = entry.into_values();
-
-        // redb::Value
 
         assert_eq!(k_0, k_1);
         assert_eq!(v_0, v_1);
