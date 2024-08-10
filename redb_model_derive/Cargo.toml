@@ -1,7 +1,7 @@
 [package]
 name = "redb_model_derive"
 authors = ["Christopher Edward Dawn"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Redb model derive macro"
 license = "MIT OR Apache-2.0"
