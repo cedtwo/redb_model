@@ -29,9 +29,8 @@ pub fn Model(item: TokenStream) -> TokenStream {
         darling::Error::unsupported_shape_with_expected("Unnamed struct", &Shape::Named)
     ));
 
-    let table_name = struct_args
-        .name
-        .unwrap_or_else(|| struct_args.ident.to_string());
+    let model_ident = struct_args.ident;
+    let model_name = struct_args.name.unwrap_or_else(|| model_ident.to_string());
 
     let (k_fields, v_fields): (Vec<_>, Vec<_>) = fields
         .into_iter()
@@ -42,77 +41,86 @@ pub fn Model(item: TokenStream) -> TokenStream {
 
     let mut stream = TokenStream::new();
 
-    stream.extend(impl_model(&k, &v, &struct_args.ident, table_name));
+    stream.extend(impl_model(&k, &v, &model_ident, model_name));
     if let Some(true) = struct_args.impl_from {
-        stream.extend(impl_from(&k, &v, &struct_args.ident));
+        stream.extend(impl_from(&k, &v, &model_ident));
     }
 
     stream
 }
 
+/// Implement `Model`, types and methods.
 fn impl_model(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
-    t_ident: &Ident,
-    t_name: String,
+    model_ident: &Ident,
+    model_name: String,
 ) -> TokenStream {
-    let k_ty = k.ty();
-    let v_ty = v.ty();
+    let k_ty_static = k.ty_static();
+    let v_ty_static = v.ty_static();
 
-    let ref_ty = def_ref_ty(&k, &v);
-    let table_def = def_table_def(&k, &v, t_name);
+    let model_alias = def_model_alias(&k, &v);
+    let table_def = def_table_def(&k, &v, model_name);
     let as_values = def_as_values(&k, &v);
-    let from_values = def_from_values(&t_ident, &k, &v);
+    let from_values = def_from_values(&model_ident, &k, &v);
     let into_values = def_into_values(&k, &v);
 
     quote! {
         #[automatically_derived]
-        impl<'a> Model<'a, #k_ty, #v_ty> for #t_ident {
-            #ref_ty
+        impl<'a> Model<'a, #k_ty_static, #v_ty_static> for #model_ident {
+            #model_alias
 
             #table_def
 
             #as_values
             #from_values
             #into_values
-            // #impl_from_guards
         }
     }
     .into()
 }
 
-fn def_ref_ty(k: &var::CompositeVariable, v: &var::CompositeVariable) -> proc_macro2::TokenStream {
-    let k_ty_ref = k.ty_ref();
-    let v_ty_ref = v.ty_ref();
-
-    quote! {
-        type KeyRef = #k_ty_ref;
-        type ValueRef = #v_ty_ref;
-    }
-}
-
-fn def_table_def(
+/// Define the `ModelKey` and `ModelValue` alias's.
+fn def_model_alias(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
-    t_name: String,
 ) -> proc_macro2::TokenStream {
     let k_ty = k.ty();
     let v_ty = v.ty();
 
     quote! {
-        const DEFINITION: redb::TableDefinition<'a, #k_ty, #v_ty> = redb::TableDefinition::new(#t_name);
+        type ModelKey = #k_ty;
+        type ModelValue = #v_ty;
     }
 }
+
+/// Define the `const` `redb::TableDefinition`.
+fn def_table_def(
+    k: &var::CompositeVariable,
+    v: &var::CompositeVariable,
+    t_name: String,
+) -> proc_macro2::TokenStream {
+    let k_ty_static = k.ty_static();
+    let v_ty_static = v.ty_static();
+
+    quote! {
+        const DEFINITION: redb::TableDefinition<'a, #k_ty_static, #v_ty_static> = redb::TableDefinition::new(#t_name);
+    }
+}
+
 /// Define the `Model::into_values` method.
 fn def_as_values(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
 ) -> proc_macro2::TokenStream {
+    let k_ty_ref = k.ty_ref();
+    let v_ty_ref = v.ty_ref();
+
     let k_ident = k.composite_ident(Some(quote! { &self. }));
     let v_ident = v.composite_ident(Some(quote! { &self. }));
 
     quote! {
-        fn as_values (&'a self) -> (Self::KeyRef, Self::ValueRef) {
+        fn as_values (&'a self) -> (#k_ty_ref, #v_ty_ref) {
             (#k_ident, #v_ident)
         }
     }
@@ -167,11 +175,9 @@ fn impl_from(
     t_ident: &Ident,
 ) -> TokenStream {
     let from_values = impl_from_values(&k, &v, &t_ident);
-    let from_guards = impl_from_guards(&k, &v, &t_ident);
 
     quote! {
         #from_values
-        #from_guards
     }
     .into()
 }
@@ -190,25 +196,6 @@ fn impl_from_values(
         impl From<(#k_ty, #v_ty)> for #t_ident {
             fn from(values: (#k_ty, #v_ty)) -> Self {
                 Self::from_values(values)
-            }
-        }
-    }
-}
-
-/// Implement `From<(AccessGuard<'_, K>, AccessGuard<'_, V>)>` for the given model.
-fn impl_from_guards(
-    k: &var::CompositeVariable,
-    v: &var::CompositeVariable,
-    t_ident: &Ident,
-) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
-    let v_ty = v.ty();
-
-    quote! {
-        #[automatically_derived]
-        impl<'a> From<(redb::AccessGuard<'a, #k_ty>, redb::AccessGuard<'a, #v_ty>)> for #t_ident {
-            fn from(guards: (redb::AccessGuard<'a, #k_ty>, redb::AccessGuard<'a, #v_ty>)) -> Self {
-                Self::from_guards(guards)
             }
         }
     }
