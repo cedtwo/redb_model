@@ -42,6 +42,7 @@ pub fn Model(item: TokenStream) -> TokenStream {
     let mut stream = TokenStream::new();
 
     stream.extend(impl_model(&k, &v, &model_ident, model_name));
+
     if let Some(true) = struct_args.impl_from {
         stream.extend(impl_from(&k, &v, &model_ident));
     }
@@ -63,6 +64,7 @@ fn impl_model(
     let table_def = def_table_def(&k, &v, model_name);
     let as_values = def_as_values(&k, &v);
     let from_values = def_from_values(&model_ident, &k, &v);
+    let from_guards = def_from_guards(&model_ident, &k, &v);
     let into_values = def_into_values(&k, &v);
 
     quote! {
@@ -74,6 +76,7 @@ fn impl_model(
 
             #as_values
             #from_values
+            #from_guards
             #into_values
         }
     }
@@ -150,6 +153,30 @@ fn def_from_values(
     }
 }
 
+/// Define the `Model::from_guards` method.
+fn def_from_guards(
+    t_ident: &Ident,
+    k: &var::CompositeVariable,
+    v: &var::CompositeVariable,
+) -> proc_macro2::TokenStream {
+    let k_ty_static = k.ty_static();
+    let v_ty_static = v.ty_static();
+
+    let k_ident = k.composite_ident(None);
+    let v_ident = v.composite_ident(None);
+
+    let all_idents = k.idents().iter().chain(v.idents());
+
+    quote! {
+        fn from_guards(guards: (redb::AccessGuard<'a, #k_ty_static>, redb::AccessGuard<'a, #v_ty_static>)) -> Self {
+            let (#k_ident, #v_ident) = (guards.0.value(), guards.1.value());
+            #t_ident {
+                #( #all_idents: #all_idents.to_owned() ), *
+            }
+        }
+    }
+}
+
 /// Define the `Model::into_values` method.
 fn def_into_values(
     k: &var::CompositeVariable,
@@ -175,9 +202,11 @@ fn impl_from(
     t_ident: &Ident,
 ) -> TokenStream {
     let from_values = impl_from_values(&k, &v, &t_ident);
+    let from_guards = impl_from_guards(&k, &v, &t_ident);
 
     quote! {
         #from_values
+        #from_guards
     }
     .into()
 }
@@ -196,6 +225,25 @@ fn impl_from_values(
         impl From<(#k_ty, #v_ty)> for #t_ident {
             fn from(values: (#k_ty, #v_ty)) -> Self {
                 Self::from_values(values)
+            }
+        }
+    }
+}
+
+/// Implement `From<(redb::AccessGuard<'_, K>, AccessGuard<'_, V>)>` for the given model.
+fn impl_from_guards(
+    k: &var::CompositeVariable,
+    v: &var::CompositeVariable,
+    t_ident: &Ident,
+) -> proc_macro2::TokenStream {
+    let k_ty_static = k.ty_static();
+    let v_ty_static = v.ty_static();
+
+    quote! {
+        #[automatically_derived]
+        impl<'a> From<(redb::AccessGuard<'a, #k_ty_static>, redb::AccessGuard<'a, #v_ty_static>)> for #t_ident {
+            fn from(guards: (redb::AccessGuard<'a, #k_ty_static>, redb::AccessGuard<'a, #v_ty_static>)) -> Self {
+                Self::from_guards(guards)
             }
         }
     }

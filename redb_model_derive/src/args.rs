@@ -2,7 +2,7 @@
 use darling::ast::Data;
 use darling::util::Ignored;
 use darling::{FromDeriveInput, FromField, FromMeta};
-use syn::{Generics, Ident, Type};
+use syn::{Ident, Type};
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(model))]
