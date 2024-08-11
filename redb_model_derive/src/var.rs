@@ -1,5 +1,6 @@
 //! Table variable interpolation.
 use darling::util::Shape;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
@@ -13,11 +14,7 @@ use syn::{Ident, Lifetime, Path, PathSegment, Token, Type, TypePath, TypeReferen
 /// are represented as string slices `&str` to simplify interop with `redb`.
 pub(super) struct CompositeVariable {
     /// The type or a tuple of types.
-    ty: Type,
-    /// The type reference or a tuple of type references.
-    ty_ref: Type,
-    /// The `'static` type reference or a tuple of `'static` type references.
-    ty_static: Type,
+    ty: Vec<Type>,
     /// All idents of the variable.
     idents: Vec<Ident>,
 }
@@ -43,43 +40,71 @@ impl CompositeVariable {
                 )),
             })?;
 
-        let (ty, ty_ref, ty_static, idents) = Self::to_composite_types(fields);
+        let (ty, idents): (Vec<Type>, Vec<Ident>) = fields.into_iter().unzip();
 
-        Ok(Self {
-            ty,
-            ty_ref,
-            ty_static,
-            idents,
-        })
+        Ok(Self { ty, idents })
     }
 
     /// Get the type. or a tuple of the types.
-    pub(crate) fn ty(&self) -> &Type {
-        &self.ty
+    pub(crate) fn ty(&self) -> Type {
+        match self.ty.len() {
+            1 => self.ty[0].clone(),
+            _ => {
+                let mut ty_el = syn::punctuated::Punctuated::new();
+                ty_el.extend(self.ty.clone());
+                Type::Tuple(TypeTuple {
+                    paren_token: Default::default(),
+                    elems: ty_el,
+                })
+            }
+        }
     }
 
-    /// Get the type reference, or a tuple of type references.
-    pub(crate) fn ty_ref(&self) -> &Type {
-        &self.ty_ref
-    }
+    /// The `K` or `V` generic type value of the definition, either a type, or a
+    /// a tuple of types. Leaves primitive numbers untouched. All other types
+    /// are appended with the given lifetime. `String` is changed to `str`.
+    pub(crate) fn types_as_generic(&self, lifetime: &str) -> Type {
+        match self.ty.len() {
+            1 => {
+                let ty = self.ty[0].clone();
+                if ty.is_string() {
+                    let str_ty = Type::new_primitive("str", ty.span());
+                    str_ty.into_reference(lifetime)
+                } else if ty.is_primitive_number() {
+                    ty.clone()
+                } else {
+                    ty.clone().into_reference(lifetime)
+                }
+            }
+            _ => {
+                let mut ty_el = syn::punctuated::Punctuated::new();
 
-    /// Get the type as a `'static` reference, or a tuple of the types as `'static` references.
-    pub(crate) fn ty_static(&self) -> &Type {
-        &self.ty_static
-    }
+                self.ty.iter().for_each(|ty| {
+                    ty_el.push(if ty.is_string() {
+                        let str_ty = Type::new_primitive("str", ty.span());
+                        str_ty.into_reference(lifetime)
+                    } else if ty.is_primitive_number() {
+                        ty.clone()
+                    } else {
+                        ty.clone().into_reference(lifetime)
+                    });
+                });
 
-    /// Get a vector of the idents.
-    pub(crate) fn idents(&self) -> &Vec<Ident> {
-        &self.idents
+                Type::Tuple(TypeTuple {
+                    paren_token: Default::default(),
+                    elems: ty_el,
+                })
+            }
+        }
     }
 
     /// Get the `Ident`, or a tuple of the `Ident`'s, optionally prefixing each variable.
-    pub(crate) fn composite_ident(
+    pub(crate) fn idents(
         &self,
         prefix: Option<proc_macro2::TokenStream>,
     ) -> proc_macro2::TokenStream {
         let prefix = prefix.unwrap_or(quote!());
-        let idents = self.idents();
+        let idents = &self.idents;
 
         if idents.len() == 1 {
             quote! { #( #prefix #idents ) * }
@@ -88,101 +113,56 @@ impl CompositeVariable {
         }
     }
 
-    /// Returns a single type, or
-    fn to_composite_types(mut vec: Vec<(Type, Ident)>) -> (Type, Type, Type, Vec<Ident>) {
-        let (ty, ty_ref, ty_static, idents) = match vec.len() {
-            1 => {
-                let (ty, ident) = vec.swap_remove(0);
-                let (ty_ref, ty_static) = if ty.is_string() {
-                    let mut segments = Punctuated::new();
-                    segments.push(PathSegment {
-                        ident: Ident::new("str", ty.span()),
-                        arguments: syn::PathArguments::None,
-                    });
-                    let str_ty = Type::Path(TypePath {
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: segments.clone(),
-                        },
-                    });
-                    (
-                        str_ty.clone().into_reference("'a"),
-                        str_ty.into_reference("'static"),
-                    )
-                } else {
-                    (
-                        ty.clone().into_reference("'a"),
-                        ty.clone().into_reference("'static"),
-                    )
-                };
+    /// Get the vector of `Ident`s.
+    pub(crate) fn idents_flat(&self) -> &Vec<Ident> {
+        &self.idents
+    }
 
-                (ty, ty_ref, ty_static, vec![ident])
+    /// Return local `self.` prefixed variables. Returns as a reference `&` except
+    /// where the type is a [`PRIMITIVE_NUMBER`].
+    pub(crate) fn idents_as_ref(&self) -> TokenStream {
+        match self.idents.len() {
+            1 => {
+                let ty = &self.ty[0];
+                let ident = &self.idents[0];
+                if ty.is_primitive_number() {
+                    quote! { self. #ident }
+                } else {
+                    quote! { &self.  #ident }
+                }
             }
             _ => {
-                let mut ty_el = syn::punctuated::Punctuated::new();
-                let mut ty_ref_el = syn::punctuated::Punctuated::new();
-                let mut ty_static_el = syn::punctuated::Punctuated::new();
-                let mut idents = Vec::with_capacity(vec.len());
+                let mut tokens: Vec<TokenStream> = Vec::with_capacity(self.idents.len());
 
-                vec.into_iter().for_each(|args| {
-                    let (ty, ident) = (args.0, args.1);
-                    ty_el.push(ty.clone());
-
-                    let (ty_ref, ty_static) = if ty.is_string() {
-                        let mut segments = Punctuated::new();
-                        segments.push(PathSegment {
-                            ident: Ident::new("str", ty.span()),
-                            arguments: syn::PathArguments::None,
-                        });
-                        let str_ty = Type::Path(TypePath {
-                            qself: None,
-                            path: Path {
-                                leading_colon: None,
-                                segments: segments.clone(),
-                            },
-                        });
-                        (
-                            str_ty.clone().into_reference("'a"),
-                            str_ty.into_reference("'static"),
-                        )
+                self.ty.iter().zip(&self.idents).for_each(|(ty, ident)| {
+                    tokens.push(if ty.is_primitive_number() {
+                        quote! { self. #ident }
                     } else {
-                        (
-                            ty.clone().into_reference("'a"),
-                            ty.into_reference("'static"),
-                        )
-                    };
-
-                    ty_ref_el.push(ty_ref);
-                    ty_static_el.push(ty_static);
-                    idents.push(ident);
+                        quote! { &self. #ident }
+                    });
                 });
 
-                let ty = Type::Tuple(TypeTuple {
-                    paren_token: Default::default(),
-                    elems: ty_el,
-                });
-                let ty_ref = Type::Tuple(TypeTuple {
-                    paren_token: Default::default(),
-                    elems: ty_ref_el,
-                });
-                let ty_static = Type::Tuple(TypeTuple {
-                    paren_token: Default::default(),
-                    elems: ty_static_el,
-                });
-
-                (ty, ty_ref, ty_static, idents)
+                quote! { ( #( #tokens ), * ) }
             }
-        };
-
-        (ty, ty_ref, ty_static, idents)
+        }
     }
 }
 
+/// Primitive `Copy` types that do not implement `Value` for their `&'static` counterpart.
+const PRIMITIVE_NUMBERS: [&str; 12] = [
+    "u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64",
+];
+
 /// General operations for `syn::Type`.
 trait TypeOps {
+    /// Create a new primitive type with no path.
+    fn new_primitive(ty: &str, span: Span) -> Type;
+
     /// Check if the given `Type` is a `String`.
     fn is_string(&self) -> bool;
+
+    /// Check if the given `Type` is a primitive number.
+    fn is_primitive_number(&self) -> bool;
 
     /// Consume `self`, wrapping it in a reference.
     fn into_reference(self, symbol: &str) -> Type;
@@ -206,12 +186,47 @@ impl TypeOps for syn::Type {
             })
     }
 
+    fn is_primitive_number(&self) -> bool {
+        if let Type::Path(TypePath {
+            qself: None,
+            path:
+                Path {
+                    leading_colon: None,
+                    segments,
+                },
+        }) = self
+        {
+            if let Some(segment) = segments.last() {
+                PRIMITIVE_NUMBERS.contains(&segment.ident.to_string().as_str())
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
     fn into_reference(self, symbol: &str) -> Type {
         Type::Reference(TypeReference {
             and_token: Token![&](self.span()),
             lifetime: Some(Lifetime::new(symbol, self.span())),
             mutability: None,
             elem: Box::new(self),
+        })
+    }
+
+    fn new_primitive(ty: &str, span: Span) -> Type {
+        let mut segments = Punctuated::new();
+        segments.push(PathSegment {
+            ident: Ident::new(ty, span),
+            arguments: syn::PathArguments::None,
+        });
+        Type::Path(TypePath {
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: segments.clone(),
+            },
         })
     }
 }
