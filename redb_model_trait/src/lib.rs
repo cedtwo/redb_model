@@ -21,4 +21,7 @@ pub trait Model<'a, K: redb::Key + 'static, V: redb::Value + 'static>: Sized + '
 
     /// Instantiate from a `(Key, Value)` pair.
     fn from_values(values: (Self::ModelKey, Self::ModelValue)) -> Self;
+
+    /// Instantiate from an `AccessGuard` pair. Calls `to_owned` on variables.
+    fn from_guards(values: (redb::AccessGuard<'a, K>, redb::AccessGuard<'a, V>)) -> Self;
 }
