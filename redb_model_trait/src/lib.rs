@@ -1,8 +1,8 @@
 /// Defines a table, and provides helper functions for table entries.
 pub trait Model<'a, K: redb::Key + 'static, V: redb::Value + 'static>: Sized + 'a {
-    /// The key type(s) held by an instance of the `Model` type.
+    /// The owned key type(s) held by an instance of the `Model` type.
     type ModelKey;
-    /// The value type(s) held by an instance of the `Model` type.
+    /// The owned value type(s) held by an instance of the `Model` type.
     type ModelValue;
 
     /// The table definition.
