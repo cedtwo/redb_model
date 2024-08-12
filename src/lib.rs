@@ -11,13 +11,13 @@
 //!
 //! ### Example
 //!
-//! ```
+//! ```rust
 //! # use redb::backends::InMemoryBackend;
 //! # use redb::Database;
 //! # use redb_model::Model;
-//! let db = Database::builder()
-//!     .create_with_backend(InMemoryBackend::new())
-//!     .unwrap();
+//! # let db = Database::builder()
+//! #    .create_with_backend(InMemoryBackend::new())
+//! #    .unwrap();
 //!
 //! #[derive(Model)]
 //! struct User {
@@ -49,7 +49,7 @@
 //! `#[entry(position(...))]`, passing either `key` or `value` to the inner field.
 //! A composite key/value will be combined into a tuple.
 //!
-//! ```
+//! ```rust
 //! # use crate::redb_model::Model;
 //! #[derive(Model)]
 //! struct User {
@@ -75,7 +75,7 @@
 //! ### Specifying a table name
 //! Table names default to the (case-sensitive) struct name. This can be overridden by decorating
 //! the struct with `#[model(name = "...")]` attribute.
-//! ```
+//! ```rust
 //! # use redb::TableHandle;
 //! # use crate::redb_model::Model;
 //! #[derive(Model)]
@@ -95,7 +95,7 @@
 //! instantiating, borrowing and taking the key/value pairs of the model DTO.
 //! Decorating the struct with `#[model(impl_from)]` will further implement
 //! `From<T>`, mapping `T` to the `from_values(T)` and `from_guards(T)` methods.
-//! ```
+//! ```rust
 //! # use crate::redb_model::Model;
 //! #[derive(Model)]
 //! #[model(impl_from)]
@@ -124,8 +124,8 @@
 //! handlers without destructuring the DTO. This is not currently possible with
 //! `String`.
 //! ```compile_error
-//! #use redb::backends::InMemoryBackend;
-//! #use redb::Database;
+//! # use redb::backends::InMemoryBackend;
+//! # use redb::Database;
 //! #
 //! # let db = Database::builder()
 //! #     .create_with_backend(InMemoryBackend::new())
@@ -147,7 +147,7 @@
 //! ### Unit type values
 //!
 //! The unit type `()` must be passed if no value is defined.
-//! ```
+//! ```rust
 //! # use redb::TableHandle;
 //! # use crate::redb_model::Model;
 //! #[derive(Model)]

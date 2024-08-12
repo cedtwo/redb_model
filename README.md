@@ -1,5 +1,5 @@
 # Redb Model
-A derive macro for generating `redb` table definitions and DTO object
+A derive macro for generating [`redb`] table definitions and DTO object
 conversion methods/implementations.
 
 ## Functionality
@@ -12,9 +12,6 @@ methods for the type.
 ### Example
 
 ```rust
-let db = Database::builder()
-    .create_with_backend(InMemoryBackend::new())
-    .unwrap();
 
 #[derive(Model)]
 struct User {
@@ -116,7 +113,7 @@ The following are general notes regarding implementation.
 is so that composite (tuple) variables can be borrowed and passed to database
 handlers without destructuring the DTO. This is not currently possible with
 `String`.
-```compile_error
+```rust
 const TABLE: TableDefinition<(String, String), ()> = TableDefinition::new("table");
 
 let string_0 = "string_0".to_string();
@@ -128,7 +125,7 @@ let mut table = txn.open_table(TABLE).unwrap();
 table.insert((&string_0, &string_1), ());
 // Neither does this.
 table.insert((string_0.as_str(), string_1.as_str()), ());
-```
+```rust
 
 ### Unit type values
 

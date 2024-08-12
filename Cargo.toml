@@ -11,6 +11,6 @@ keywords = ["redb", "model", "schema"]
 categories = ["rust-patterns"]
 
 [dependencies]
-_derive = { package = "redb_model_derive", version = "0.3.0", path="./redb_model_derive" }
+_derive = { package = "redb_model_derive", version = "0.3.1", path="./redb_model_derive" }
 _trait = { package = "redb_model_trait", version = "0.2.2", path="./redb_model_trait" }
 redb = "2.1"
