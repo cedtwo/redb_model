@@ -4,8 +4,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::token::PathSep;
-use syn::{Ident, Lifetime, Path, PathSegment, Token, Type, TypePath, TypeReference, TypeTuple};
+use syn::token::{Group, PathSep};
+use syn::{
+    Ident, Lifetime, Path, PathSegment, Token, Type, TypeGroup, TypePath, TypeReference, TypeTuple,
+};
 
 /// A variable, or tuple of variables.
 ///
@@ -175,25 +177,25 @@ impl TypeOps for syn::Type {
             ident: Ident::new("String", self.span()),
             arguments: syn::PathArguments::None,
         });
+        let string_path_ty = Type::Path(TypePath {
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments,
+            },
+        });
+        let string_group_ty = Type::Group(TypeGroup {
+            group_token: Group(self.span()),
+            elem: Box::new(string_path_ty.clone()),
+        });
 
-        *self
-            == Type::Path(TypePath {
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments,
-                },
-            })
+        *self == string_path_ty || *self == string_group_ty
     }
 
     fn is_primitive_number(&self) -> bool {
         if let Type::Path(TypePath {
-            qself: None,
-            path:
-                Path {
-                    leading_colon: None,
-                    segments,
-                },
+            path: Path { segments, .. },
+            ..
         }) = self
         {
             if let Some(segment) = segments.last() {
@@ -201,6 +203,8 @@ impl TypeOps for syn::Type {
             } else {
                 false
             }
+        } else if let Type::Group(TypeGroup { elem, .. }) = self {
+            elem.is_primitive_number()
         } else {
             false
         }
