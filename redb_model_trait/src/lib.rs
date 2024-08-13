@@ -24,4 +24,10 @@ pub trait Model<'a, K: redb::Key + 'static, V: redb::Value + 'static>: Sized + '
 
     /// Instantiate from an `AccessGuard` pair. Calls `to_owned` on variables.
     fn from_guards(values: (redb::AccessGuard<'a, K>, redb::AccessGuard<'a, V>)) -> Self;
+
+    /// Clone the inner key.
+    fn clone_key(&self) -> Self::ModelKey;
+
+    /// Get the inner value.
+    fn clone_value(&self) -> Self::ModelValue;
 }
