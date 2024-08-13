@@ -125,7 +125,7 @@ let mut table = txn.open_table(TABLE).unwrap();
 table.insert((&string_0, &string_1), ());
 // Neither does this.
 table.insert((string_0.as_str(), string_1.as_str()), ());
-```rust
+```
 
 ### Unit type values
 
