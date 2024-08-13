@@ -104,14 +104,15 @@ impl CompositeVariable {
     pub(crate) fn idents(
         &self,
         prefix: Option<proc_macro2::TokenStream>,
+        suffix: Option<proc_macro2::TokenStream>,
     ) -> proc_macro2::TokenStream {
         let prefix = prefix.unwrap_or(quote!());
         let idents = &self.idents;
 
         if idents.len() == 1 {
-            quote! { #( #prefix #idents ) * }
+            quote! { #( #prefix #idents #suffix ) * }
         } else {
-            quote! { ( #( #prefix #idents ), * ) }
+            quote! { ( #( #prefix #idents #suffix ), * ) }
         }
     }
 

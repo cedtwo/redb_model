@@ -60,9 +60,11 @@ fn impl_model(
     let model_alias = def_model_alias(&k, &v);
     let table_def = def_table_def(&k, &v, model_name);
     let as_values = def_as_values(&k, &v);
+    let into_values = def_into_values(&k, &v);
     let from_values = def_from_values(&model_ident, &k, &v);
     let from_guards = def_from_guards(&model_ident, &k, &v);
-    let into_values = def_into_values(&k, &v);
+    let clone_key = def_clone_key(&k);
+    let clone_value = def_clone_value(&v);
 
     let generic_k = k.types_as_generic("'static");
     let generic_v = v.types_as_generic("'static");
@@ -75,9 +77,11 @@ fn impl_model(
             #table_def
 
             #as_values
+            #into_values
             #from_values
             #from_guards
-            #into_values
+            #clone_key
+            #clone_value
         }
     }
     .into()
@@ -129,6 +133,30 @@ fn def_as_values(
     }
 }
 
+/// Define the `Model::clone_key` method.
+fn def_clone_key(k: &var::CompositeVariable) -> proc_macro2::TokenStream {
+    let k_ty = k.ty();
+    let k_ident_to_owned = k.idents(Some(quote!(self.)), Some(quote!(.to_owned())));
+
+    quote! {
+        fn clone_key (&self) -> (#k_ty) {
+            #k_ident_to_owned
+        }
+    }
+}
+
+/// Define the `Model::clone_key` method.
+fn def_clone_value(v: &var::CompositeVariable) -> proc_macro2::TokenStream {
+    let v_ty = v.ty();
+    let v_ident_to_owned = v.idents(Some(quote!(self.)), Some(quote!(.to_owned())));
+
+    quote! {
+        fn clone_value (&self) -> (#v_ty) {
+            #v_ident_to_owned
+        }
+    }
+}
+
 /// Define the `Model::from_values` method.
 fn def_from_values(
     t_ident: &Ident,
@@ -138,8 +166,8 @@ fn def_from_values(
     let k_ty = k.ty();
     let v_ty = v.ty();
 
-    let k_ident = k.idents(None);
-    let v_ident = v.idents(None);
+    let k_ident = k.idents(None, None);
+    let v_ident = v.idents(None, None);
 
     let all_idents = k.idents_flat().iter().chain(v.idents_flat());
 
@@ -160,8 +188,8 @@ fn def_from_guards(
     let generic_k = k.types_as_generic("'static");
     let generic_v = v.types_as_generic("'static");
 
-    let k_ident = k.idents(None);
-    let v_ident = v.idents(None);
+    let k_ident = k.idents(None, None);
+    let v_ident = v.idents(None, None);
 
     let all_idents = k.idents_flat().iter().chain(v.idents_flat());
 
@@ -183,8 +211,8 @@ fn def_into_values(
     let k_ty = k.ty();
     let v_ty = v.ty();
 
-    let k_scoped_ident = k.idents(Some(quote! {self.}));
-    let v_scoped_ident = v.idents(Some(quote! {self.}));
+    let k_scoped_ident = k.idents(Some(quote! {self.}), None);
+    let v_scoped_ident = v.idents(Some(quote! {self.}), None);
 
     quote! {
         fn into_values(self) -> (#k_ty, #v_ty) {

@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 proc_macro = true
 
 [dependencies]
-_trait = { package = "redb_model_trait", version = "0.2.2", path="../redb_model_trait" }
+_trait = { package = "redb_model_trait", version = "0.3.0", path="../redb_model_trait" }
 
 proc-macro2 = "1.0.86"
 darling = "0.20.10"
