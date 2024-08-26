@@ -1,18 +1,13 @@
 # Redb Model
-A derive macro for generating [`redb`] table definitions and DTO object
+A derive macro for generating [redb] table definitions and (optionally) DTO object
 conversion methods/implementations.
 
 ## Functionality
 
-This crate aims to unify database entry DTO definitions and `redb::TableDefinition`.
-Decorating a struct with `#[derive(Model)]` will implement `Model` for the type,
-define `redb::TableDefinition` as an associated constant, and generating helper
-methods for the type.
-
-### Example
+At a minimum, deriving `Model` on a named `struct` will implement the [Model]
+trait, declaring `redb::TableDefinition` as an associated constant.
 
 ```rust
-
 #[derive(Model)]
 struct User {
     #[entry(position(key))]
@@ -23,116 +18,77 @@ struct User {
     email: String,
 }
 
-let user = User {
-    id: 0,
-    name: "User".to_owned(),
-    email: "user_email@email.com".to_owned(),
-};
+assert_eq!(User::DEFINITION.name(), "User");
+```
+
+Tables can be customized with optional arguments, and an implementation of
+[ModelExt] can be generated to provide common `DTO` functionality.
+
+```rust
+#
+#[derive(Model)]
+#[model(name = "outbound_edge", impl_ext)]
+struct Edge {
+    #[entry(position(key))]
+    source: u32,
+    #[entry(position(key))]
+    target: u32,
+    #[entry(position(value))]
+    label: String,
+}
+
+assert_eq!(Edge::DEFINITION.name(), "outbound_edge");
+let edge = Edge::from_values(((0, 1), "label".to_owned()));
 
 let txn = db.begin_write().unwrap();
 {
-    let mut table = txn.open_table(User::DEFINITION).unwrap();
-    let (k, v) = user.as_values();
+    let mut table = txn.open_table(Edge::DEFINITION).unwrap();
+    let (k, v) = edge.as_values();
     table.insert(k, v).unwrap();
 }
 txn.commit().unwrap();
 ```
 
-### Specifying keys and values
-Key(s) and value(s) are specified by decorating table fields with
-`#[entry(position(...))]`, passing either `key` or `value` to the inner field.
-A composite key/value will be combined into a tuple.
+## Struct Attributes
 
-```rust
-#[derive(Model)]
-struct User {
-    #[entry(position(key))]
-    uuid: [u8; 16],
-    #[entry(position(value))]
-    username: String,
-    #[entry(position(value))]
-    email: String,
-}
+A model can be customized with the `model` attribute, providing any of the
+following arguments:
 
-let user_key = [0; 16];
-let user_value = ("my_name".to_string(), "my_email@email.com".to_string());
+Argument | Description | Type | Default
+---|---|---|---
+`table_name` | The table name passed to the definition | `String` | `<Struct name>` (case-sensitive)
+`table_type` | Table type, either `table` or `multimap_table` | `String` | `table`
+`impl_ext` | Implement [`ModelExt`] for the type | `bool` | `false`
+`impl_from` | Implement `From<T>`, mapping `T` to the `from_values(T)` and `from_guards(T)` methods of [`ModelExt`]. Requires `impl_ext`. | `bool` | `false`
 
-let user = User::from_values((user_key, user_value));
-let (k, v) = user.into_values();
+## Field Attributes
 
-// Only the value is a tuple for this model.
-assert_eq!(k, [0; 16]);
-assert_eq!(v, ("my_name".to_string(), "my_email@email.com".to_string()));
-```
+Values can be customized with the `entry` attribute. Each field must be specified
+as either `key` or `value` with the `position` argument. Note that composite
+variables (multiple `key` or `value` fields) are combined as tuples in the order
+they are defined in the struct.
 
-### Specifying a table name
-Table names default to the (case-sensitive) struct name. This can be overridden by decorating
-the struct with `#[model(name = "...")]` attribute.
-```rust
-#[derive(Model)]
-#[model(name = "user_table")]
-struct User {
-    #[entry(position(key))]
-    uuid: [u8; 16],
-    #[entry(position(value))]
-    username: String,
-}
+Argument | Description | Type | Default
+---|---|---|---
+`position` | The position of the field in an entry, either a `key` or a `value`. | `String` | N/A
 
-assert_eq!(User::DEFINITION.name(), "user_table");
-```
-
-### Type conversion
-The generated implementation of the `Model` trait provides methods for
-instantiating, borrowing and taking the key/value pairs of the model DTO.
-Decorating the struct with `#[model(impl_from)]` will further implement
-`From<T>`, mapping `T` to the `from_values(T)` and `from_guards(T)` methods.
-```rust
-#[derive(Model)]
-#[model(impl_from)]
-struct User {
-    #[entry(position(key))]
-    uuid: [u8; 16],
-    #[entry(position(value))]
-    username: String,
-    #[entry(position(value))]
-    email: String,
-}
-
-let user_key = [0; 16];
-let user_value = ("my_name".to_string(), "my_email@email.com".to_string());
-
-let user: User = ((user_key, user_value)).into();
-```
 ## Implementation details
 
-The following are general notes regarding implementation.
+General notes regarding trait and type generation.
 
 ### `String` Table Definitions
 
 `redb_model` will replace `String` with `&str` for table definitions. This
 is so that composite (tuple) variables can be borrowed and passed to database
-handlers without destructuring the DTO. This is not currently possible with
-`String`.
-```rust
-const TABLE: TableDefinition<(String, String), ()> = TableDefinition::new("table");
-
-let string_0 = "string_0".to_string();
-let string_1 = "string_1".to_string();
-
-let txn = db.begin_write().unwrap();
-let mut table = txn.open_table(TABLE).unwrap();
-// This doesn't work.
-table.insert((&string_0, &string_1), ());
-// Neither does this.
-table.insert((string_0.as_str(), string_1.as_str()), ());
-```
+handlers without destructuring the DTO.
 
 ### Unit type values
 
 The unit type `()` must be passed if no value is defined.
+
 ```rust
 #[derive(Model)]
-#[model(name = "outbound_edge")]
+#[model(name = "outbound_edge", impl_ext)]
 struct Edge {
     #[entry(position(key))]
     source: [u8; 16],
@@ -143,18 +99,5 @@ let k = ([0; 16], [1; 16]);
 let v = ();
 let e = Edge::from_values((k, v));
 ```
-
-### Variable Ordering
-
-All composite key/value variables are combined as a tuple in the order they
-are defined. This is intended but can be changed if there is any reason
-to do so.
-
-### The `Model` definition and `redb::TableDefinition`
-
-The `redb::TableDefinition` uses `'static` references of the types defined
-in the `Model`, with the exception of `String` which uses a `'static` string
-slice. This is to ensure that calling `as_values` returns references suitable
-for database calls.
 
 License: MIT OR Apache-2.0
