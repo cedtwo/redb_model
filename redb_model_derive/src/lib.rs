@@ -1,3 +1,5 @@
+//! Derive macro for the `redb_model` crate.
+
 use args::{ModelTableType, VariablePosition};
 use darling::{util::Shape, FromDeriveInput};
 use proc_macro::TokenStream;
