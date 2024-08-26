@@ -10,10 +10,21 @@ pub struct ModelArgs {
     pub ident: Ident,
     pub data: Data<Ignored, VariableArgs>,
 
+    /// The type of table to define.
+    pub table_type: Option<ModelTableType>,
     /// The name of the table, defaulting to the struct `Ident`.
     pub name: Option<String>,
-    /// Implement `From<T>` for the given model, mapped to trait methods.
+    /// Implement `ModelExt` for the given model.
+    pub impl_ext: Option<bool>,
+    /// Implement `From<T>` for the given model. Requires implementing `ModelExt`.
     pub impl_from: Option<bool>,
+}
+
+#[derive(FromMeta, Default)]
+pub enum ModelTableType {
+    #[default]
+    Table,
+    MultimapTable,
 }
 
 #[derive(FromField)]
