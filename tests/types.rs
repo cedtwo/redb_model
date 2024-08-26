@@ -1,3 +1,4 @@
+//! Type tests.
 #[macro_use]
 mod macros;
 

@@ -1,3 +1,5 @@
+//! Macros for use in tests.
+
 /// Create a model of the given key and value type(s).
 #[allow(unused)]
 macro_rules! create_model {
@@ -10,7 +12,7 @@ macro_rules! create_model {
     ) => {
         #[derive(Model, Debug, PartialEq)]
         #[allow(non_camel_case_types)]
-        #[model(impl_from)]
+        #[model(impl_ext, impl_from)]
         struct $struct_name {
             $(
                 #[entry(position(key))]
@@ -70,7 +72,7 @@ macro_rules! test_model {
 
             // `impl_from` and `from_guards`.
             let all_entries = table
-                .range::<<$struct_name as redb_model::Model<_, _>>::ModelKey>(..)
+                .range::<<$struct_name as redb_model::ModelExt<_, _, _>>::ModelKey>(..)
                 .unwrap()
                 .map(|result| {
                     result
@@ -98,7 +100,7 @@ macro_rules! test_integer {
         mod $mod_name {
 
             use redb::{backends::InMemoryBackend, Database};
-            use redb_model::Model;
+            use redb_model::{Model, ModelExt};
 
             #[test]
             fn test_single() {
@@ -127,7 +129,7 @@ macro_rules! test_float {
         mod $mod_name {
 
             use redb::{backends::InMemoryBackend, Database};
-            use redb_model::Model;
+            use redb_model::{Model, ModelExt};
 
             #[test]
             fn test_single() {
