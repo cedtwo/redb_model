@@ -1,3 +1,5 @@
+//! Traits for the `redb_model` crate.
+
 /// Trait for table definition.
 pub trait Model<D> {
     /// The table definition.
