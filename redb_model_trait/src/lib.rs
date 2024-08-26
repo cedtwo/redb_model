@@ -1,12 +1,26 @@
-/// Defines a table, and provides helper functions for table entries.
-pub trait Model<'a, K: redb::Key + 'static, V: redb::Value + 'static>: Sized + 'a {
+/// Trait for table definition.
+pub trait Model<D> {
+    /// The table definition.
+    const DEFINITION: D;
+}
+
+/// Extension traits for entries derived from a `Model`.
+pub trait ModelExt<'a, D, K, V>: Model<D> + Sized + 'a
+where
+    K: redb::Key + 'static,
+    V: redb::Value + 'static,
+{
     /// The owned key type(s) held by an instance of the `Model` type.
     type ModelKey;
+
     /// The owned value type(s) held by an instance of the `Model` type.
     type ModelValue;
 
-    /// The table definition.
-    const DEFINITION: redb::TableDefinition<'a, K, V>;
+    /// Instantiate from a `(Key, Value)` pair.
+    fn from_values(values: (Self::ModelKey, Self::ModelValue)) -> Self;
+
+    /// Instantiate from an `AccessGuard` pair. Calls `to_owned` on variables.
+    fn from_guards(values: (redb::AccessGuard<'a, K>, redb::AccessGuard<'a, V>)) -> Self;
 
     /// Return a reference to the `(Key, Value)` pair.
     fn as_values(
@@ -18,12 +32,6 @@ pub trait Model<'a, K: redb::Key + 'static, V: redb::Value + 'static>: Sized + '
 
     /// Consume the entry, returning a `(Key, Value)` pair.
     fn into_values(self) -> (Self::ModelKey, Self::ModelValue);
-
-    /// Instantiate from a `(Key, Value)` pair.
-    fn from_values(values: (Self::ModelKey, Self::ModelValue)) -> Self;
-
-    /// Instantiate from an `AccessGuard` pair. Calls `to_owned` on variables.
-    fn from_guards(values: (redb::AccessGuard<'a, K>, redb::AccessGuard<'a, V>)) -> Self;
 
     /// Clone the inner key.
     fn clone_key(&self) -> Self::ModelKey;
