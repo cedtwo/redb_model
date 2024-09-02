@@ -171,7 +171,7 @@ fn def_from_guards(
     let all_idents = k.idents_flat().iter().chain(v.idents_flat());
 
     quote! {
-        fn from_guards(values: (redb::AccessGuard<'a, #generic_k>, redb::AccessGuard<'a, #generic_v>)) -> Self {
+        fn from_guards(values: (&redb::AccessGuard<'a, #generic_k>, &redb::AccessGuard<'a, #generic_v>)) -> Self {
             let (#k_ident, #v_ident) = (values.0.value(), values.1.value());
             #t_ident {
                 #( #all_idents: #all_idents.to_owned() ), *
@@ -196,7 +196,7 @@ fn def_from_key_and_guard(
     let v_idents = v.idents_flat();
 
     quote! {
-        fn from_key_and_guard(values: (#k_ty, redb::AccessGuard<'a, #generic_v>)) -> Self {
+        fn from_key_and_guard(values: (#k_ty, &redb::AccessGuard<'a, #generic_v>)) -> Self {
             let (#k_ident, #v_ident) = (values.0, values.1.value());
             #t_ident {
                 #( #k_idents ), *,
@@ -313,8 +313,8 @@ fn impl_from_guards(
 
     quote! {
         #[automatically_derived]
-        impl<'a> From<(redb::AccessGuard<'a, #generic_k>, redb::AccessGuard<'a, #generic_v>)> for #t_ident {
-            fn from(guards: (redb::AccessGuard<'a, #generic_k>, redb::AccessGuard<'a, #generic_v>)) -> Self {
+        impl<'a> From<(&redb::AccessGuard<'a, #generic_k>, &redb::AccessGuard<'a, #generic_v>)> for #t_ident {
+            fn from(guards: (&redb::AccessGuard<'a, #generic_k>, &redb::AccessGuard<'a, #generic_v>)) -> Self {
                 <Self as redb_model::ModelExt<_, _, _>>::from_guards(guards)
             }
         }
