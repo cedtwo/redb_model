@@ -76,7 +76,7 @@ macro_rules! test_model {
                 .unwrap()
                 .map(|result| {
                     result
-                        .map(|guards| $struct_name::from_guards((guards.0, guards.1)))
+                        .map(|guards| $struct_name::from_guards((&guards.0, &guards.1)))
                         .unwrap()
                 })
                 .collect::<Vec<_>>();
