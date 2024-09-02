@@ -93,6 +93,7 @@ fn impl_model_ext(
 
     let from_values = def_from_values(&model_ident, &k, &v);
     let from_guards = def_from_guards(&model_ident, &k, &v);
+    let from_key_and_guard = def_from_key_and_guard(&model_ident, &k, &v);
     let as_values = def_as_values(&k, &v);
     let into_values = def_into_values(&k, &v);
     let clone_key = def_clone_key(&k);
@@ -109,6 +110,7 @@ fn impl_model_ext(
 
             #from_values
             #from_guards
+            #from_key_and_guard
             #as_values
             #into_values
             #clone_key
@@ -169,10 +171,36 @@ fn def_from_guards(
     let all_idents = k.idents_flat().iter().chain(v.idents_flat());
 
     quote! {
-        fn from_guards(guards: (redb::AccessGuard<'a, #generic_k>, redb::AccessGuard<'a, #generic_v>)) -> Self {
-            let (#k_ident, #v_ident) = (guards.0.value(), guards.1.value());
+        fn from_guards(values: (redb::AccessGuard<'a, #generic_k>, redb::AccessGuard<'a, #generic_v>)) -> Self {
+            let (#k_ident, #v_ident) = (values.0.value(), values.1.value());
             #t_ident {
                 #( #all_idents: #all_idents.to_owned() ), *
+            }
+        }
+    }
+}
+
+/// Define the `Model::from_key_and_guard` method.
+fn def_from_key_and_guard(
+    t_ident: &Ident,
+    k: &var::CompositeVariable,
+    v: &var::CompositeVariable,
+) -> proc_macro2::TokenStream {
+    let k_ty = k.ty();
+    let generic_v = v.types_as_generic("'static");
+
+    let k_ident = k.idents(None, None);
+    let v_ident = v.idents(None, None);
+
+    let k_idents = k.idents_flat();
+    let v_idents = v.idents_flat();
+
+    quote! {
+        fn from_key_and_guard(values: (#k_ty, redb::AccessGuard<'a, #generic_v>)) -> Self {
+            let (#k_ident, #v_ident) = (values.0, values.1.value());
+            #t_ident {
+                #( #k_idents ), *,
+                #( #v_idents: #v_idents.to_owned() ), *
             }
         }
     }
