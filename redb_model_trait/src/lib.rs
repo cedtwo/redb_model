@@ -24,6 +24,9 @@ where
     /// Instantiate from an `AccessGuard` pair. Calls `to_owned` on variables.
     fn from_guards(values: (redb::AccessGuard<'a, K>, redb::AccessGuard<'a, V>)) -> Self;
 
+    /// Instantiate from an owned key and an `AccessGuard` value.
+    fn from_key_and_guard(values: (Self::ModelKey, redb::AccessGuard<'a, V>)) -> Self;
+
     /// Return a reference to the `(Key, Value)` pair.
     fn as_values(
         &'a self,
