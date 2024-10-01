@@ -72,7 +72,7 @@ macro_rules! test_model {
 
             // `impl_from` and `from_guards`.
             let all_entries = table
-                .range::<<$struct_name as redb_model::ModelExt<_, _, _>>::ModelKey>(..)
+                .range::<<$struct_name as redb_model::ModelExt>::ModelKey>(..)
                 .unwrap()
                 .map(|result| {
                     result
