@@ -84,7 +84,7 @@ dependencies = [
 
 [[package]]
 name = "redb_model"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "redb",
  "redb_model_derive",

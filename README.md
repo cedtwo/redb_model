@@ -1,10 +1,10 @@
 # Redb Model
-A derive macro for generating [redb] table definitions and (optionally) DTO object
+A derive macro for generating [`redb`] table definitions and (optionally) DTO object
 conversion methods/implementations.
 
 ## Functionality
 
-At a minimum, deriving `Model` on a named `struct` will implement the [Model]
+At a minimum, deriving `Model` on a named `struct` will implement the [`Model`]
 trait, declaring `redb::TableDefinition` as an associated constant.
 
 ```rust
@@ -21,8 +21,8 @@ struct User {
 assert_eq!(User::DEFINITION.name(), "User");
 ```
 
-Tables can be customized with optional arguments, and an implementation of
-[ModelExt] can be generated to provide common `DTO` functionality.
+In the example below, we specify the table name as "outbound_edge", and
+generate an implementation of [`ModelExt`], providing common `DTO` functionality.
 
 ```rust
 #
@@ -38,11 +38,13 @@ struct Edge {
 }
 
 assert_eq!(Edge::DEFINITION.name(), "outbound_edge");
+// ModelExt::from_values
 let edge = Edge::from_values(((0, 1), "label".to_owned()));
 
 let txn = db.begin_write().unwrap();
 {
     let mut table = txn.open_table(Edge::DEFINITION).unwrap();
+    // ModelExt::as_values
     let (k, v) = edge.as_values();
     table.insert(k, v).unwrap();
 }
@@ -75,6 +77,55 @@ Argument | Description | Type | Default
 ## Implementation details
 
 General notes regarding trait and type generation.
+
+## Type Aliases
+
+As of version `0.9.0`, generic arguments have been removed from [`Model`] and [`ModelExt`]
+in exchange for type aliases. This decision was made to simplify trait definitions.
+Take for example the trait below, where we avoid specifying any concrete types;
+
+```rust
+#[derive(Model)]
+#[model(impl_ext)]
+struct User {
+    #[entry(position(key))]
+    user_id: [u8; 16],
+}
+
+#[derive(Model)]
+#[model(impl_ext)]
+struct Article {
+    #[entry(position(key))]
+    article_id: [u8; 16],
+    #[entry(position(value))]
+    author_id: [u8; 16],
+}
+
+/// Get the key of model `T` from the implementing model.
+trait SharedKey<'a, T: ModelExt<'a>>: ModelExt<'a> {
+    /// Consume the instance, returning the key of model `T`.
+    fn into_shared_key(self) -> T::ModelKey;
+    /// Get a reference to the key of model `T`.
+    fn shared_key_ref(&'a self) -> <T::RedbKey as redb::Value>::SelfType<'a>;
+}
+
+
+impl<'a> SharedKey<'a, User> for Article {
+    fn into_shared_key(self) -> <User as ModelExt<'a>>::ModelKey {
+        self.author_id
+    }
+
+    fn shared_key_ref(&'a self) -> <<User as ModelExt>::RedbKey as redb::Value>::SelfType<'a> {
+        &self.author_id
+    }
+}
+
+let article = Article::from_values(([0u8; 16], [0u8; 16]));
+// Get the user id from an article.
+let user_id = article.shared_key_ref();
+// or
+let user_id = SharedKey::<User>::shared_key_ref(&article);
+```
 
 ### `String` Table Definitions
 
