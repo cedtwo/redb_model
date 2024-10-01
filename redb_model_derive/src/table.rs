@@ -32,7 +32,7 @@ impl TableMetadata {
     }
 
     /// The table, or multimap table definition as a generic type.
-    pub(crate) fn type_as_generic(&self, k: &Type, v: &Type) -> Type {
+    pub(crate) fn redb_ty(&self, k: &Type, v: &Type) -> Type {
         // Generic argumemnts.
         let mut args: Punctuated<_, Comma> = Punctuated::new();
         args.push(GenericArgument::Lifetime(Lifetime::new(

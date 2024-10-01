@@ -66,17 +66,18 @@ fn impl_model(
     v: &var::CompositeVariable,
     t: &table::TableMetadata,
 ) -> TokenStream {
-    let generic_k = k.types_as_generic("'static");
-    let generic_v = v.types_as_generic("'static");
-    let generic_t = t.type_as_generic(&generic_k, &generic_v);
+    let k_ty = k.redb_ty("'static");
+    let v_ty = v.redb_ty("'static");
+    let t_ty = t.redb_ty(&k_ty, &v_ty);
 
-    let table_ident = t.ident();
-    let table_name = t.name();
+    let t_ident = t.ident();
+    let t_name = t.name();
 
     quote! {
         #[automatically_derived]
-        impl<'a> Model<#generic_t> for #table_ident {
-                const DEFINITION: #generic_t = <#generic_t>::new(#table_name);
+        impl<'a> Model<'a> for #t_ident {
+                type TableType = #t_ty;
+                const DEFINITION: Self::TableType = <#t_ty>::new(#t_name);
         }
     }
     .into()
@@ -88,6 +89,7 @@ fn impl_model_ext(
     v: &var::CompositeVariable,
     t: &table::TableMetadata,
 ) -> TokenStream {
+    let redb_alias = def_redb_alias(&k, &v);
     let model_alias = def_model_alias(&k, &v);
     let model_ident = t.ident();
 
@@ -99,13 +101,10 @@ fn impl_model_ext(
     let clone_key = def_clone_key(&k);
     let clone_value = def_clone_value(&v);
 
-    let generic_k = k.types_as_generic("'static");
-    let generic_v = v.types_as_generic("'static");
-    let generic_t = t.type_as_generic(&generic_k, &generic_v);
-
     quote! {
         #[automatically_derived]
-        impl<'a> redb_model::ModelExt<'a, #generic_t, #generic_k, #generic_v> for #model_ident {
+        impl<'a> redb_model::ModelExt<'a> for #model_ident {
+            #redb_alias
             #model_alias
 
             #from_values
@@ -120,13 +119,27 @@ fn impl_model_ext(
     .into()
 }
 
+/// Define the `RedbKey` and `RedbValue` alias's.
+fn def_redb_alias(
+    k: &var::CompositeVariable,
+    v: &var::CompositeVariable,
+) -> proc_macro2::TokenStream {
+    let k_ty = k.redb_ty("'static");
+    let v_ty = v.redb_ty("'static");
+
+    quote! {
+        type RedbKey = #k_ty;
+        type RedbValue = #v_ty;
+    }
+}
+
 /// Define the `ModelKey` and `ModelValue` alias's.
 fn def_model_alias(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
 ) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
-    let v_ty = v.ty();
+    let k_ty = k.model_ty();
+    let v_ty = v.model_ty();
 
     quote! {
         type ModelKey = #k_ty;
@@ -140,8 +153,8 @@ fn def_from_values(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
 ) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
-    let v_ty = v.ty();
+    let k_ty = k.model_ty();
+    let v_ty = v.model_ty();
 
     let k_ident = k.idents(None, None);
     let v_ident = v.idents(None, None);
@@ -149,7 +162,7 @@ fn def_from_values(
     let all_idents = k.idents_flat().iter().chain(v.idents_flat());
 
     quote! {
-        fn from_values(values: (#k_ty, #v_ty)) -> Self {
+        fn from_values(values: (Self::ModelKey, Self::ModelValue)) -> Self {
             let (#k_ident, #v_ident) = (values.0, values.1);
             #t_ident { #( #all_idents ), * }
         }
@@ -162,16 +175,13 @@ fn def_from_guards(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
 ) -> proc_macro2::TokenStream {
-    let generic_k = k.types_as_generic("'static");
-    let generic_v = v.types_as_generic("'static");
-
     let k_ident = k.idents(None, None);
     let v_ident = v.idents(None, None);
 
     let all_idents = k.idents_flat().iter().chain(v.idents_flat());
 
     quote! {
-        fn from_guards(values: (&redb::AccessGuard<'a, #generic_k>, &redb::AccessGuard<'a, #generic_v>)) -> Self {
+        fn from_guards(values: (&redb::AccessGuard<'a, Self::RedbKey>, &redb::AccessGuard<'a, Self::RedbValue>)) -> Self {
             let (#k_ident, #v_ident) = (values.0.value(), values.1.value());
             #t_ident {
                 #( #all_idents: #all_idents.to_owned() ), *
@@ -186,9 +196,6 @@ fn def_from_key_and_guard(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
 ) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
-    let generic_v = v.types_as_generic("'static");
-
     let k_ident = k.idents(None, None);
     let v_ident = v.idents(None, None);
 
@@ -196,7 +203,7 @@ fn def_from_key_and_guard(
     let v_idents = v.idents_flat();
 
     quote! {
-        fn from_key_and_guard(values: (#k_ty, &redb::AccessGuard<'a, #generic_v>)) -> Self {
+        fn from_key_and_guard(values: (Self::ModelKey, &redb::AccessGuard<'a, Self::RedbValue>)) -> Self {
             let (#k_ident, #v_ident) = (values.0, values.1.value());
             #t_ident {
                 #( #k_idents ), *,
@@ -214,11 +221,11 @@ fn def_as_values(
     let k_ident_ref = k.idents_as_ref();
     let v_ident_ref = v.idents_as_ref();
 
-    let generic_k_ref = k.types_as_generic("'a");
-    let generic_v_ref = v.types_as_generic("'a");
+    let k_ty_ref = k.redb_ty("'a");
+    let v_ty_ref = v.redb_ty("'a");
 
     quote! {
-        fn as_values (&'a self) -> (#generic_k_ref, #generic_v_ref) {
+        fn as_values (&'a self) -> (#k_ty_ref, #v_ty_ref) {
             (#k_ident_ref, #v_ident_ref)
         }
     }
@@ -229,8 +236,8 @@ fn def_into_values(
     k: &var::CompositeVariable,
     v: &var::CompositeVariable,
 ) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
-    let v_ty = v.ty();
+    let k_ty = k.model_ty();
+    let v_ty = v.model_ty();
 
     let k_scoped_ident = k.idents(Some(quote! {self.}), None);
     let v_scoped_ident = v.idents(Some(quote! {self.}), None);
@@ -244,7 +251,7 @@ fn def_into_values(
 
 /// Define the `Model::clone_key` method.
 fn def_clone_key(k: &var::CompositeVariable) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
+    let k_ty = k.model_ty();
     let k_ident_to_owned = k.idents(Some(quote!(self.)), Some(quote!(.to_owned())));
 
     quote! {
@@ -256,7 +263,7 @@ fn def_clone_key(k: &var::CompositeVariable) -> proc_macro2::TokenStream {
 
 /// Define the `Model::clone_key` method.
 fn def_clone_value(v: &var::CompositeVariable) -> proc_macro2::TokenStream {
-    let v_ty = v.ty();
+    let v_ty = v.model_ty();
     let v_ident_to_owned = v.idents(Some(quote!(self.)), Some(quote!(.to_owned())));
 
     quote! {
@@ -289,14 +296,14 @@ fn impl_from_values(
     v: &var::CompositeVariable,
     t_ident: &Ident,
 ) -> proc_macro2::TokenStream {
-    let k_ty = k.ty();
-    let v_ty = v.ty();
+    let k_ty = k.model_ty();
+    let v_ty = v.model_ty();
 
     quote! {
         #[automatically_derived]
         impl From<(#k_ty, #v_ty)> for #t_ident {
             fn from(values: (#k_ty, #v_ty)) -> Self {
-                <Self as redb_model::ModelExt<_, _, _>>::from_values(values)
+                <Self as redb_model::ModelExt>::from_values(values)
             }
         }
     }
@@ -308,14 +315,14 @@ fn impl_from_guards(
     v: &var::CompositeVariable,
     t_ident: &Ident,
 ) -> proc_macro2::TokenStream {
-    let generic_k = k.types_as_generic("'static");
-    let generic_v = v.types_as_generic("'static");
+    let generic_k = k.redb_ty("'static");
+    let generic_v = v.redb_ty("'static");
 
     quote! {
         #[automatically_derived]
         impl<'a> From<(&redb::AccessGuard<'a, #generic_k>, &redb::AccessGuard<'a, #generic_v>)> for #t_ident {
             fn from(guards: (&redb::AccessGuard<'a, #generic_k>, &redb::AccessGuard<'a, #generic_v>)) -> Self {
-                <Self as redb_model::ModelExt<_, _, _>>::from_guards(guards)
+                <Self as redb_model::ModelExt>::from_guards(guards)
             }
         }
     }

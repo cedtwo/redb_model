@@ -48,7 +48,7 @@ impl CompositeVariable {
     }
 
     /// Get the type. or a tuple of the types.
-    pub(crate) fn ty(&self) -> Type {
+    pub(crate) fn model_ty(&self) -> Type {
         match self.ty.len() {
             1 => self.ty[0].clone(),
             _ => {
@@ -65,7 +65,7 @@ impl CompositeVariable {
     /// The `K` or `V` generic type value of the definition, either a type, or a
     /// a tuple of types. Leaves primitive numbers untouched. All other types
     /// are appended with the given lifetime. `String` is changed to `str`.
-    pub(crate) fn types_as_generic(&self, lifetime: &str) -> Type {
+    pub(crate) fn redb_ty(&self, lifetime: &str) -> Type {
         match self.ty.len() {
             1 => {
                 let ty = self.ty[0].clone();
