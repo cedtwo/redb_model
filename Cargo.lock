@@ -84,16 +84,18 @@ dependencies = [
 
 [[package]]
 name = "redb_model"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "redb",
  "redb_model_derive",
  "redb_model_trait",
+ "secrecy",
+ "uuid",
 ]
 
 [[package]]
 name = "redb_model_derive"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -104,9 +106,18 @@ dependencies = [
 
 [[package]]
 name = "redb_model_trait"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "redb",
+]
+
+[[package]]
+name = "secrecy"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e891af845473308773346dc847b2c23ee78fe442e0472ac50e22a18a93d3ae5a"
+dependencies = [
+ "zeroize",
 ]
 
 [[package]]
@@ -131,3 +142,15 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "uuid"
+version = "1.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8c5f0a0af699448548ad1a2fbf920fb4bee257eae39953ba95cb84891a0446a"
+
+[[package]]
+name = "zeroize"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
