@@ -6,19 +6,28 @@ use syn::{
     PathSegment, Token, Type, TypePath,
 };
 
-use crate::args::ModelTableType;
+use crate::args::{ModelArgs, ModelTableType};
 
 /// Metadata for table definitions.
-pub(super) struct TableMetadata {
+pub(super) struct ModelMeta {
     ident: Ident,
     name: String,
-    ty: ModelTableType,
+
+    table_ty: ModelTableType,
 }
 
-impl TableMetadata {
-    /// Create a new `TableMetaData` instance from the table `ident`, `name` and `ty`.
-    pub(super) fn new(ident: Ident, name: String, ty: ModelTableType) -> Self {
-        Self { ident, name, ty }
+impl ModelMeta {
+    /// Create a new `ModelMeta` instance from the given `ModelArgs`.
+    pub(super) fn new(args: ModelArgs) -> Self {
+        let ident = args.ident;
+        let name = args.name.unwrap_or_else(|| ident.to_string());
+        let table_ty = args.table_type.unwrap_or(Default::default());
+
+        Self {
+            ident,
+            name,
+            table_ty,
+        }
     }
 
     /// Get the table `Ident`.
@@ -54,14 +63,14 @@ impl TableMetadata {
             ident: Ident::new("redb", self.ident.span()),
             arguments: syn::PathArguments::None,
         });
-        match self.ty {
+        match self.table_ty {
             ModelTableType::Table => {
                 segments.push(PathSegment {
                     ident: Ident::new("TableDefinition", self.ident.span()),
                     arguments: table_generics,
                 });
             }
-            ModelTableType::MultimapTable => {
+            ModelTableType::Multimap => {
                 segments.push(PathSegment {
                     ident: Ident::new("MultimapTableDefinition", self.ident.span()),
                     arguments: table_generics,
