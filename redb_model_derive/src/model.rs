@@ -45,7 +45,7 @@ impl ModelMeta {
         // Generic argumemnts.
         let mut args: Punctuated<_, Comma> = Punctuated::new();
         args.push(GenericArgument::Lifetime(Lifetime::new(
-            "'a",
+            "'static",
             self.ident.span(),
         )));
         args.push(GenericArgument::Type(k.clone()));

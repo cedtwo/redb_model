@@ -1,7 +1,7 @@
 //! Traits for the `redb_model` crate.
 
 /// Trait for table definition.
-pub trait Model<'a> {
+pub trait Model {
     /// The table type.
     type TableType;
     /// The table definition.
@@ -9,7 +9,7 @@ pub trait Model<'a> {
 }
 
 /// Conversion methods for a `Model` and the associated keys and values.
-pub trait ModelExt<'a>: Model<'a> + Sized + 'a {
+pub trait ModelExt<'a>: Model + Sized {
     /// The `redb` definition key type(s).
     type RedbKey: redb::Key;
     /// The `redb` definition value type(s).

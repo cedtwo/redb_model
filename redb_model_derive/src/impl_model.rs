@@ -18,7 +18,7 @@ pub(super) fn impl_model(
 
     quote! {
         #[automatically_derived]
-        impl<'a> Model<'a> for #m_ident {
+        impl Model for #m_ident {
                 type TableType = #m_ty;
                 const DEFINITION: Self::TableType = <#m_ty>::new(#m_name);
         }
