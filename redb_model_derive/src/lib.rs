@@ -35,8 +35,16 @@ pub fn Model(item: TokenStream) -> TokenStream {
     let impl_from = struct_args.impl_from;
     let impl_ext = struct_args.impl_ext;
 
+    #[allow(unused_mut)]
     let (k_fields, v_fields): (Vec<_>, Vec<_>) = fields_args
         .into_iter()
+        .map(|mut arg| {
+            #[cfg(any(feature = "uuid"))]
+            if let Some(external_ty) = arg.external_type() {
+                arg = arg.into_external_type(external_ty);
+            }
+            arg
+        })
         .partition(|field| *field.position() == args::EntryPosition::Key);
 
     // Model

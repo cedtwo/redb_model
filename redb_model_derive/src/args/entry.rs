@@ -3,8 +3,7 @@ use quote::format_ident;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::token::{Dot, Star};
-use syn::{Expr, ExprMethodCall, ExprPath, ExprReference, ExprUnary, Path};
-use syn::{Ident, PathSegment, Token, Type};
+use syn::*;
 
 use super::ty::RedbType;
 
@@ -125,12 +124,6 @@ impl EntryArgs {
                     match **redb_type {
                         // Pass a reference to the value.
                         Type::Reference(_) => self.ident_expr(),
-                        // Expr::Reference(ExprReference {
-                        //     attrs: vec![],
-                        //     and_token: Token![&](self.ident.span()),
-                        //     mutability: None,
-                        //     expr: Box::new(self.ident_expr()),
-                        // }),
 
                         // Call `into` on the value.
                         _ => Expr::MethodCall(ExprMethodCall {
@@ -152,5 +145,37 @@ impl EntryArgs {
                 }),
             }
         })
+    }
+}
+
+#[cfg(any(feature = "uuid"))]
+use super::external::ExternalType;
+
+#[cfg(any(feature = "uuid"))]
+impl EntryArgs {
+    /// Assert the entry contains only the field `Ident` and `Type`.
+    fn is_raw_ty(&self) -> bool {
+        self.redb_type.is_none() && self.from.is_none() && self.into.is_none()
+    }
+
+    /// Get the matching `ExternalType`, or `None` if either no matching type is
+    /// found, or other metadata is defined for the field.
+    pub(crate) fn external_type(&self) -> Option<impl ExternalType> {
+        if self.is_raw_ty() {
+            #[cfg(feature = "uuid")]
+            if super::uuid::UuidType::is_external_type(&self.ty) {
+                return Some(super::uuid::UuidType);
+            }
+        }
+        None
+    }
+
+    /// Mutate into the given `ExternalType`.
+    pub(crate) fn into_external_type(mut self, ty: impl ExternalType) -> Self {
+        self.redb_type = Some(ty.redb_ty(&mut self));
+        self.from = Some(ty.from_op(&mut self));
+        self.into = Some(ty.into_op(&mut self));
+
+        self
     }
 }

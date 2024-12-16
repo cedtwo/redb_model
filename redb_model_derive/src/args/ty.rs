@@ -7,7 +7,14 @@ use syn::{spanned::Spanned, Lifetime, Type};
 
 /// The `redb` entry `Type` definition. Declares any lifetime as `'static`.
 #[derive(Clone)]
-pub(super) struct RedbType(Type);
+pub(crate) struct RedbType(Type);
+
+impl RedbType {
+    /// Create a new `RedbType` from the given `Type`.
+    pub(super) fn new(ty: Type) -> RedbType {
+        RedbType(ty)
+    }
+}
 
 impl Deref for RedbType {
     type Target = Type;
