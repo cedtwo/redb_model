@@ -113,7 +113,7 @@ The following features can be enabled to handle type conversion for their respec
 of the feature.
 
 Feature | DTO Type | Database Type | From operation | Into operation
----|---|---
+---|---|---|---|---
 `uuid` | `Uuid` | `[u8; 16]` | `Uuid::from_bytes(field)` | `field.as_bytes()`
 `secrecy` | 'SecretString | `&str` | "SecretString::from(field)" | `ExposeSecret::expose_secret(&field)`
 `secrecy` | `SecretBox<S>`  | `S` | `SecretBox::new(Box::new(*field))` | `*ExposeSecret::expose_secret(&field)`
