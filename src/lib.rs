@@ -111,8 +111,45 @@
 //! ---|---|---|---
 //! `position` | The position of the field in an entry, either a `key` or a `value`. | `enum` (`key` or `value`) | `None`
 //! `redb_type` | The type defined in the `redb::TableDefinition` or `redb::MultimapTableDefinition`. | `Type` | Field `Type`
-//! `from` | The operation to convert **from** the `redb_type`.  | `Expression` | See below.
-//! `into` | The operation to convert **into** the `redb_type`.  | `Expression` | See below.
+//! `from` | The operation to convert **from** the `redb_type`.  | `Expression` | See [`Type Conversion`] below.
+//! `into` | The operation to convert **into** the `redb_type`.  | `Expression` | See [`Type Conversion`] below.
+//!
+//! ## Features
+//!
+//! The following features can be enabled to handle type conversion for their respective
+//! `Type`. Note that declaring `redb_type`, `from` or `into` will override the values
+//! of the feature.
+//!
+//! Feature | DTO Type | Database Type | From operation | Into operation
+//! ---|---|---
+//! `uuid` | `Uuid` | `[u8; 16]` | `Uuid::from_bytes(field)` | `field.as_bytes()`
+//! `secrecy` | 'SecretString | `&str` | "SecretString::from(field)" | `ExposeSecret::expose_secret(&field)`
+//! `secrecy` | `SecretBox<S>`  | `S` | `SecretBox::new(Box::new(*field))` | `*ExposeSecret::expose_secret(&field)`
+//!
+//! ```rust
+//! # use redb_model::{Model, ModelExt};
+//! use uuid::Uuid;
+//! use secrecy::{SecretString, SecretBox, ExposeSecret};
+//!
+//! # #[cfg(all(feature = "uuid", feature = "secrecy"))]
+//! #[derive(Model)]
+//! #[model(impl_ext)]
+//! struct SecretModel {
+//!     #[entry(position = "key")]
+//!     id: Uuid,
+//!     #[entry(position = "value")]
+//!     secret_string: SecretString,
+//!     #[entry(position = "value")]
+//!     secret_box_1: SecretBox<u32>,
+//!     // Set a custom `into` operation.
+//!     #[entry(position = "value", into = "secret_box_2.expose_secret() + 1")]
+//!     secret_box_2: SecretBox<u32>,
+//! }
+//! ```
+//!
+//! ## Type Conversion
+//!
+//! The following is applicable for types not enabled by `features`:
 //!
 //! Conversion `from` a `redb` value has the following default behavior (`impl_ext` only):
 //! - If no `redb_type` is specified, the value is assumed to implement `Copy` and passed directly to the DTO.
@@ -160,7 +197,7 @@
 //! `from` expressions, this argument is the `redb_type`, while for `into` expressions,
 //! this is a **reference** of the field value. Note that while the operations are
 //! named `from` and `into`, there is no constraint on what operations can be used,
-//! as is demonstrated below.
+//! as is demonstrated below where `Uuid` and `SecretString` are manually implemented.
 //!
 //! ```rust
 //! # use redb_model::{Model, ModelExt};
@@ -173,14 +210,14 @@
 //!     #[entry(
 //!         position = "key",
 //!         redb_type = "[u8; 16]",
-//!         from = "Uuid::from_bytes(id)", // `id` is the `redb_type` (`[u8; 16]`).
+//!         from = "Uuid::from_bytes(id)", // `id` is `[u8; 16]`.
 //!         into = "id.into_bytes()" // `id` is `&Uuid`.
 //!     )]
 //!     id: Uuid,
 //!     #[entry(
 //!         position = "value",
 //!         redb_type = "&str",
-//!         from = "SecretString::from(secret)", // `secret` is the `redb_type` (`&str`).
+//!         from = "SecretString::from(secret)", // `secret` is `&str`.
 //!         into = "secret.expose_secret()" // `secret` is `&SecretString`.
 //!     )]
 //!     secret: SecretString,
