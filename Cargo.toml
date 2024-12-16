@@ -11,9 +11,23 @@ keywords = ["redb", "model", "schema"]
 categories = ["rust-patterns"]
 
 [dependencies]
-_derive = { package = "redb_model_derive", version = "0.9.0", path="./redb_model_derive" }
-_trait = { package = "redb_model_trait", version = "0.8.0", path="./redb_model_trait" }
 redb = "2.1"
+
+[dependencies._derive]
+version = "0.11.0"
+package = "redb_model_derive"
+path = "./redb_model_derive"
+default-features = false
+
+[dependencies._trait]
+version = "0.8.0"
+package = "redb_model_trait"
+path = "./redb_model_trait"
+default-features = false
+
+[features]
+uuid = ["_derive/uuid"]
+secrecy = ["_derive/secrecy"]
 
 [dev-dependencies]
 uuid = "1.11.0"

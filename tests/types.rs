@@ -408,3 +408,89 @@ fn test_composite_wrapper_impl_type() {
     test_from_key_and_guard!(db, CompositeValue, (k, v));
     test_as_key_and_value!(db, CompositeValue, (k, v));
 }
+
+#[cfg(feature = "uuid")]
+#[test]
+fn test_uuid_type() {
+    let db = Database::builder()
+        .create_with_backend(InMemoryBackend::new())
+        .unwrap();
+
+    #[derive(Model, PartialEq, Eq, Debug)]
+    #[model(impl_ext, impl_from)]
+    struct UuidType {
+        #[entry(position = "key")]
+        key0: uuid::Uuid,
+        #[entry(position = "key")]
+        key1: uuid::Uuid,
+        #[entry(position = "value")]
+        value0: uuid::Uuid,
+        #[entry(position = "value")]
+        value1: uuid::Uuid,
+    }
+
+    let (k, v) = ((&[0; 16], &[1; 16]), (&[2; 16], &[3; 16]));
+
+    test_from_values!(UuidType, (k, v));
+    test_from_guards!(db, UuidType, (k, v));
+    test_from_key_and_guard!(db, UuidType, (k, v));
+    test_as_key_and_value!(db, UuidType, (k, v));
+    test_as_key!(UuidType, (k, v));
+    test_as_value!(UuidType, (k, v));
+}
+
+#[cfg(feature = "secrecy")]
+#[test]
+fn test_secretstring_type() {
+    let db = Database::builder()
+        .create_with_backend(InMemoryBackend::new())
+        .unwrap();
+
+    #[derive(Model, Debug)]
+    #[model(impl_ext, impl_from)]
+    struct SecretStringType {
+        #[entry(position = "key")]
+        key0: secrecy::SecretString,
+        #[entry(position = "key")]
+        key1: secrecy::SecretString,
+        #[entry(position = "value")]
+        value0: secrecy::SecretString,
+        #[entry(position = "value")]
+        value1: secrecy::SecretString,
+    }
+
+    let (k, v) = (("key0", "key1"), ("value0", "value1"));
+
+    test_from_values!(SecretStringType, (k, v));
+    test_as_key_and_value!(db, SecretStringType, (k, v));
+    test_as_key!(SecretStringType, (k, v));
+    test_as_value!(SecretStringType, (k, v));
+}
+
+#[cfg(feature = "secrecy")]
+#[test]
+fn test_secretbox_type() {
+    let db = Database::builder()
+        .create_with_backend(InMemoryBackend::new())
+        .unwrap();
+
+    #[derive(Model, Debug)]
+    #[model(impl_ext, impl_from)]
+    struct SecretBoxType {
+        #[entry(position = "key")]
+        key0: secrecy::SecretBox<u8>,
+        #[entry(position = "key")]
+        key1: secrecy::SecretBox<u16>,
+        #[entry(position = "value")]
+        value0: secrecy::SecretBox<[u8; 4]>,
+        #[entry(position = "value")]
+        value1: secrecy::SecretBox<[u8; 4]>,
+    }
+
+    let (k, v) = ((0, 1), ([2; 4], [3, 4, 5, 6]));
+
+    test_from_values!(SecretBoxType, (k, v));
+    test_as_key_and_value!(db, SecretBoxType, (k, v));
+    test_as_key!(SecretBoxType, (k, v));
+    test_as_value!(SecretBoxType, (k, v));
+}
