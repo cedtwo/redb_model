@@ -15,7 +15,7 @@ pub(super) struct UuidType;
 impl ExternalType for UuidType {
     const IDENT_MATCH: &'static str = "Uuid";
 
-    fn redb_ty(&self, entry: &EntryArgs) -> RedbType {
+    fn redb_ty(entry: &EntryArgs) -> RedbType {
         // `&'static [u8; 16]`
 
         let mut segments = Punctuated::new();
@@ -51,7 +51,7 @@ impl ExternalType for UuidType {
         RedbType::new(ty)
     }
 
-    fn from_op(&self, entry: &EntryArgs) -> Expr {
+    fn from_op(entry: &EntryArgs) -> Expr {
         // `uuid::Uuid::from_bytes(*field)`
 
         let mut path = Path {
@@ -102,7 +102,7 @@ impl ExternalType for UuidType {
         })
     }
 
-    fn into_op(&self, entry: &EntryArgs) -> Expr {
+    fn into_op(entry: &EntryArgs) -> Expr {
         // `field.as_bytes()`
 
         Expr::MethodCall(ExprMethodCall {

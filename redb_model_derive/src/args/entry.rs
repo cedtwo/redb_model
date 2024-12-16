@@ -148,34 +148,55 @@ impl EntryArgs {
     }
 }
 
-#[cfg(any(feature = "uuid"))]
-use super::external::ExternalType;
+#[cfg(any(feature = "uuid", feature = "secrecy"))]
+mod external_features {
 
-#[cfg(any(feature = "uuid"))]
-impl EntryArgs {
-    /// Assert the entry contains only the field `Ident` and `Type`.
-    fn is_raw_ty(&self) -> bool {
-        self.redb_type.is_none() && self.from.is_none() && self.into.is_none()
-    }
+    use syn::{Type, TypePath};
 
-    /// Get the matching `ExternalType`, or `None` if either no matching type is
-    /// found, or other metadata is defined for the field.
-    pub(crate) fn external_type(&self) -> Option<impl ExternalType> {
-        if self.is_raw_ty() {
-            #[cfg(feature = "uuid")]
-            if super::uuid::UuidType::is_external_type(&self.ty) {
-                return Some(super::uuid::UuidType);
-            }
+    use crate::args::external::ExternalType;
+    use crate::args::EntryArgs;
+
+    impl EntryArgs {
+        /// Assert the entry contains only the field `Ident` and `Type`.
+        fn is_raw_ty(&self) -> bool {
+            self.redb_type.is_none() && self.from.is_none() && self.into.is_none()
         }
-        None
-    }
 
-    /// Mutate into the given `ExternalType`.
-    pub(crate) fn into_external_type(mut self, ty: impl ExternalType) -> Self {
-        self.redb_type = Some(ty.redb_ty(&mut self));
-        self.from = Some(ty.from_op(&mut self));
-        self.into = Some(ty.into_op(&mut self));
+        /// Get the a mutating operation for the matching `ExternalType`, or `None`
+        /// if either no matching type is found, or other metadata is defined for the field.
+        pub(crate) fn _external_type_op(&self) -> Option<Box<dyn FnOnce(EntryArgs) -> EntryArgs>> {
+            /// Match the entry `ident` against an enabled `feature` and external type.
+            macro_rules! feature_match {
+                ($feature:literal, $ident:ident, $ty:path) => {
+                    #[cfg(feature = $feature)]
+                    (if $ident == <$ty>::IDENT_MATCH {
+                        return Some(Box::new(EntryArgs::_into_external_type::<$ty>));
+                    })
+                };
+            }
 
-        self
+            if self.is_raw_ty() {
+                if let Type::Path(TypePath { path, .. }) = &self.ty {
+                    for segment in path.segments.iter() {
+                        let _ident = segment.ident.to_string();
+
+                        feature_match!("uuid", _ident, crate::args::uuid::UuidType);
+                        feature_match!("secrecy", _ident, crate::args::secrecy::SecretStringType);
+                        feature_match!("secrecy", _ident, crate::args::secrecy::SecretBoxType);
+                    }
+                }
+            }
+
+            None
+        }
+
+        /// Mutate into the given `ExternalType`.
+        pub(crate) fn _into_external_type<T: ExternalType>(mut self) -> Self {
+            self.redb_type = Some(T::redb_ty(&mut self));
+            self.from = Some(T::from_op(&mut self));
+            self.into = Some(T::into_op(&mut self));
+
+            self
+        }
     }
 }

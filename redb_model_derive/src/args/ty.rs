@@ -10,6 +10,7 @@ use syn::{spanned::Spanned, Lifetime, Type};
 pub(crate) struct RedbType(Type);
 
 impl RedbType {
+    #[cfg(any(feature = "uuid", feature = "secrecy"))]
     /// Create a new `RedbType` from the given `Type`.
     pub(super) fn new(ty: Type) -> RedbType {
         RedbType(ty)

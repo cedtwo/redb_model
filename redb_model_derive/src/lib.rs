@@ -39,9 +39,9 @@ pub fn Model(item: TokenStream) -> TokenStream {
     let (k_fields, v_fields): (Vec<_>, Vec<_>) = fields_args
         .into_iter()
         .map(|mut arg| {
-            #[cfg(any(feature = "uuid"))]
-            if let Some(external_ty) = arg.external_type() {
-                arg = arg.into_external_type(external_ty);
+            #[cfg(any(feature = "uuid", feature = "secrecy"))]
+            if let Some(op) = arg._external_type_op() {
+                arg = op(arg);
             }
             arg
         })
