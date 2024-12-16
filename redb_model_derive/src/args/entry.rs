@@ -157,11 +157,6 @@ mod external_features {
     use crate::args::EntryArgs;
 
     impl EntryArgs {
-        /// Assert the entry contains only the field `Ident` and `Type`.
-        fn is_raw_ty(&self) -> bool {
-            self.redb_type.is_none() && self.from.is_none() && self.into.is_none()
-        }
-
         /// Get the a mutating operation for the matching `ExternalType`, or `None`
         /// if either no matching type is found, or other metadata is defined for the field.
         pub(crate) fn _external_type_op(&self) -> Option<Box<dyn FnOnce(EntryArgs) -> EntryArgs>> {
@@ -175,15 +170,13 @@ mod external_features {
                 };
             }
 
-            if self.is_raw_ty() {
-                if let Type::Path(TypePath { path, .. }) = &self.ty {
-                    for segment in path.segments.iter() {
-                        let _ident = segment.ident.to_string();
+            if let Type::Path(TypePath { path, .. }) = &self.ty {
+                for segment in path.segments.iter() {
+                    let _ident = segment.ident.to_string();
 
-                        feature_match!("uuid", _ident, crate::args::uuid::UuidType);
-                        feature_match!("secrecy", _ident, crate::args::secrecy::SecretStringType);
-                        feature_match!("secrecy", _ident, crate::args::secrecy::SecretBoxType);
-                    }
+                    feature_match!("uuid", _ident, crate::args::uuid::UuidType);
+                    feature_match!("secrecy", _ident, crate::args::secrecy::SecretStringType);
+                    feature_match!("secrecy", _ident, crate::args::secrecy::SecretBoxType);
                 }
             }
 
@@ -192,9 +185,9 @@ mod external_features {
 
         /// Mutate into the given `ExternalType`.
         pub(crate) fn _into_external_type<T: ExternalType>(mut self) -> Self {
-            self.redb_type = Some(T::redb_ty(&mut self));
-            self.from = Some(T::from_op(&mut self));
-            self.into = Some(T::into_op(&mut self));
+            self.redb_type = self.redb_type.take().or(Some(T::redb_ty(&mut self)));
+            self.from = self.from.take().or(Some(T::from_op(&mut self)));
+            self.into = self.into.take().or(Some(T::into_op(&mut self)));
 
             self
         }

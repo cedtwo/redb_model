@@ -40,7 +40,7 @@ impl ExternalType for SecretStringType {
     }
 
     fn from_op(entry: &EntryArgs) -> Expr {
-        // `secrecy::SecretString::from(*field)`
+        // `secrecy::SecretString::from(field)`
 
         let mut path = Path {
             leading_colon: None,
