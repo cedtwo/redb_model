@@ -84,7 +84,7 @@ dependencies = [
 
 [[package]]
 name = "redb_model_derive"
-version = "0.8.0"
+version = "0.12.1"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -95,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "redb_model_trait"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "redb",
 ]

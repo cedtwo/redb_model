@@ -14,7 +14,7 @@ categories = ["rust-patterns"]
 redb = "2.1"
 
 [dependencies._derive]
-version = "0.12.0"
+version = "0.12.1"
 package = "redb_model_derive"
 path = "./redb_model_derive"
 default-features = false

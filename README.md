@@ -109,14 +109,14 @@ Argument | Description | Type | Default
 ## Features
 
 The following features can be enabled to handle type conversion for their respective
-`Type`. Note that declaring `redb_type`, `from` or `into` will override the values
-of the feature.
+`Type`(s). Note that the attributes below can be overwritten by explicit field
+attributes.
 
 Feature | DTO Type | Database Type | From operation | Into operation
 ---|---|---|---|---
 `uuid` | `Uuid` | `[u8; 16]` | `Uuid::from_bytes(field)` | `field.as_bytes()`
-`secrecy` | `SecretString` | `&str` | `SecretString::from(field)` | `ExposeSecret::expose_secret(&field)`
-`secrecy` | `SecretBox<S>`  | `S` | `SecretBox::new(Box::new(*field))` | `*ExposeSecret::expose_secret(&field)`
+`secrecy` | `SecretString` | `&str` | `SecretString::from(field)` | `ExposeSecret::expose_secret(field)`
+`secrecy` | `SecretBox<S>`  | `S` | `SecretBox::new(Box::new(field))` | `*ExposeSecret::expose_secret(field)`
 
 ```rust
 use uuid::Uuid;
@@ -186,7 +186,8 @@ Both the `from` and `into` argument accept a variable named after the field. For
 `from` expressions, this argument is the `redb_type`, while for `into` expressions,
 this is a **reference** of the field value. Note that while the operations are
 named `from` and `into`, there is no constraint on what operations can be used,
-as is demonstrated below where `Uuid` and `SecretString` are manually implemented.
+as is demonstrated below where type conversion for `Uuid` and `SecretString`
+are manually implemented.
 
 ```rust
 use secrecy::{ExposeSecret, SecretString};
