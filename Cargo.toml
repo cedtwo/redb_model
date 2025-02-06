@@ -10,9 +10,6 @@ license = "MIT OR Apache-2.0"
 keywords = ["redb", "model", "schema"]
 categories = ["rust-patterns"]
 
-[dependencies]
-redb = "2.1"
-
 [dependencies._derive]
 version = "0.12.1"
 package = "redb_model_derive"
@@ -30,5 +27,6 @@ uuid = ["_derive/uuid"]
 secrecy = ["_derive/secrecy"]
 
 [dev-dependencies]
+redb = "2.4"
 uuid = "1.11.0"
 secrecy = "0.10.3"
