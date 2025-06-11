@@ -27,6 +27,6 @@ uuid = ["_derive/uuid"]
 secrecy = ["_derive/secrecy"]
 
 [dev-dependencies]
-redb = "2.4"
-uuid = "1.11.0"
+redb = "2.6"
+uuid = "1.17.0"
 secrecy = "0.10.3"
