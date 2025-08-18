@@ -1,5 +1,6 @@
 //! Type tests.
-use redb::{backends::InMemoryBackend, Database, ReadableTableMetadata};
+use redb::backends::InMemoryBackend;
+use redb::{Database, ReadableDatabase, ReadableTableMetadata};
 
 use _derive::Model;
 use _trait::{Model, ModelExt};

@@ -32,7 +32,7 @@
 //! `Copy` the `u32` fields, and borrow the `String` field as a `&str`.
 //!
 //! ```
-//! # use redb::{Database, TableHandle};
+//! # use redb::{Database, TableHandle, ReadableDatabase};
 //! # use redb::backends::InMemoryBackend;
 //! # use redb_model::{Model, ModelExt};
 //! # let db = Database::builder()

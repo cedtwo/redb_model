@@ -7,4 +7,4 @@ description = "Redb model trait"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-redb = "2.1"
+redb = "3.0"

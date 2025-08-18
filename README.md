@@ -1,8 +1,10 @@
-# Redb Model
+# redb_model
+
+## Redb Model
 A derive macro for generating [`redb`] table definitions and DTO object
 conversion methods/implementations.
 
-## Functionality
+### Functionality
 
 At a minimum, deriving `Model` on a named `struct` will implement the [`Model`]
 trait, declaring `redb::TableDefinition` as an associated constant.
@@ -75,7 +77,7 @@ let edge1 = table
 assert_eq!(edge0, edge1);
 ```
 
-## Struct Attributes
+### Struct Attributes
 
 A model can be customized with the `model` attribute, providing any of the
 following arguments:
@@ -90,7 +92,7 @@ Argument | Description | Type | Default
 Note that `impl_from` uses methods of `impl_ext` and therefore requires both
 arguments to be specified.
 
-## Field Attributes
+### Field Attributes
 
 Values can be customized with the `entry` attribute. Each field must specify
 `position` as `key` or `value`, and (optionally) provide an alternate `redb_type`.
@@ -106,7 +108,7 @@ Argument | Description | Type | Default
 `from` | The operation to convert **from** the `redb_type`.  | `Expression` | See [`Type Conversion`] below.
 `into` | The operation to convert **into** the `redb_type`.  | `Expression` | See [`Type Conversion`] below.
 
-## Features
+### Features
 
 The following features can be enabled to handle type conversion for their respective
 `Type`(s). Note that the attributes below can be overwritten by explicit field
@@ -137,7 +139,7 @@ struct SecretModel {
 }
 ```
 
-## Type Conversion
+### Type Conversion
 
 The following is applicable for types not enabled by `features`:
 
@@ -213,7 +215,7 @@ struct SecretModel {
 }
 ```
 
-## Type Aliases
+### Type Aliases
 
 Generated definitions of the [`ModelExt`] traits defines type aliases for the
 common key and value tuples used extensively in generated code. These may be
@@ -226,6 +228,13 @@ Alias | Description
 `ModelExt::RedbValue` | The `V` argument for the given `redb` definition.
 `ModelExt::ModelKey` | A tuple of the owned key type(s) defined in the model.
 `ModelExt::ModelValue` | A tuple of the owned value type(s) defined in the model.
+
+### Compatability
+
+`redb` | `redb_model`
+---|---
+`3` | `0.12`
+`2` | `0.11`
 
 
 License: MIT OR Apache-2.0
