@@ -239,5 +239,12 @@
 //! `ModelExt::ModelKey` | A tuple of the owned key type(s) defined in the model.
 //! `ModelExt::ModelValue` | A tuple of the owned value type(s) defined in the model.
 //!
+//! ## Compatability
+//!
+//! `redb` | `redb_model`
+//! ---|---
+//! `3` | `0.12`
+//! `2` | `0.1`-`0.11`
+//!
 pub use _derive::Model;
 pub use _trait::{Model, ModelExt};
