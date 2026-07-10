@@ -233,8 +233,9 @@ Alias | Description
 
 `redb` | `redb_model`
 ---|---
-`3` | `0.12`
-`2` | `0.1`-`0.11`
+`4.0` | `0.13`
+`3.0` | `0.12`
+`2.0` | `0.1`-`0.11`
 
 
 License: MIT OR Apache-2.0
